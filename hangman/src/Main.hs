@@ -69,12 +69,16 @@ alreadyGuessed (Puzzle _ _ s) c = elem c s
 
 fillInCharacter :: Puzzle -> Char -> Puzzle
 fillInCharacter (Puzzle word filledInSoFar s) c =
-  Puzzle word newFilledInSoFar (c : s)
+  Puzzle word newFilledInSoFar newGuessed
   where zipper guessed wordChar guessChar =
           if wordChar == guessed
           then Just wordChar
           else guessChar
         newFilledInSoFar = zipWith (zipper c) word filledInSoFar
+        newGuessed =
+           if (length $ filter isJust newFilledInSoFar) == (length $ filter isJust filledInSoFar)
+           then (c : s)
+           else s
 
 
 handleGuess :: Puzzle -> Char -> IO Puzzle
