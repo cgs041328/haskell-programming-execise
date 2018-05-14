@@ -1,6 +1,7 @@
 module Addition where
 
 import Test.Hspec
+import Test.QuickCheck
 
 main :: IO ()
 main = hspec $ do
@@ -9,6 +10,9 @@ main = hspec $ do
             multiply' 2 0 `shouldBe` 0
         it "2 * 3 = 6 " $ do
             multiply' 2 3 `shouldBe` 6
+        it "x + 1 is always\
+            \ greater than x" $ do
+            property $ \x -> x + 1 > (x :: Int)
 
 sayHello :: IO ()
 sayHello = putStrLn "hello!"
@@ -23,3 +27,9 @@ dividedBy num denom = go num denom 0
 multiply' :: (Eq a, Num a) => a -> a -> a
 multiply' _ 0  = 0
 multiply' a b  = a + multiply' a (b - 1)
+
+prop_additionGreater :: Int -> Bool
+prop_additionGreater x = x + 1 > x
+
+runQc :: IO ()
+runQc = quickCheck prop_additionGreater
