@@ -11,6 +11,10 @@ instance Semigroup Trivial where
 instance Arbitrary Trivial where
     arbitrary = return Trivial
 
+instance Monoid Trivial where
+    mempty = Trivial
+    mappend = (<>)
+
 --Identity
 newtype Identity a = Identity a deriving (Eq, Show)
 
@@ -22,6 +26,9 @@ instance Arbitrary a => Arbitrary (Identity a) where
         a <- arbitrary
         return (Identity a)
 
+instance (Semigroup a, Monoid a) => Monoid ( Identity a ) where
+    mempty = Identity mempty
+    mappend = (<>)
 --Two
 data Two a b = Two a b deriving (Eq, Show)
 
@@ -80,6 +87,10 @@ newtype Combine a b =
 instance Semigroup b => Semigroup (Combine a b) where
     Combine {unCombine=f} <> Combine {unCombine=g} = Combine (f <> g)
 
+instance (Semigroup b, Monoid b) => Monoid (Combine a b) where
+  mempty = Combine $ \n -> mempty
+  mappend = (<>)
+
 f = Combine $ \n -> Sum (n + 1)
 g = Combine $ \n -> Sum (n - 1)
 
@@ -88,6 +99,8 @@ data Validation a b =
     Failure a | Success b
     deriving (Eq, Show)
 
+
+
 instance Semigroup a => Semigroup (Validation a b) where
    Success a <> _         = Success a 
    _         <> Success b = Success b
@@ -95,6 +108,12 @@ instance Semigroup a => Semigroup (Validation a b) where
 
 semigroupAssoc :: (Eq m, Semigroup m) => m -> m -> m -> Bool
 semigroupAssoc a b c = (a <> (b <> c)) == ((a <> b) <> c)
+
+monoidLeftIdentity :: (Eq m, Monoid m, Semigroup m) => m -> Bool
+monoidLeftIdentity a = (mempty <> a) == a
+
+monoidRightIdentity :: (Eq m, Monoid m, Semigroup m) => m -> Bool
+monoidRightIdentity a = (a <> mempty) == a
 
 type TrivAssoc = Trivial -> Trivial -> Trivial -> Bool
 
@@ -112,7 +131,11 @@ type OrAssoc = Or String Ordering -> Or String Ordering -> Or String Ordering ->
 main :: IO ()
 main = do
   quickCheck (semigroupAssoc :: TrivAssoc)
+  quickCheck (monoidLeftIdentity :: Trivial -> Bool)
+  quickCheck (monoidRightIdentity :: Trivial -> Bool)
   quickCheck (semigroupAssoc :: IdentityAssoc)
+  quickCheck (monoidLeftIdentity :: Identity String -> Bool)
+  quickCheck (monoidRightIdentity :: Identity String -> Bool)
   quickCheck (semigroupAssoc :: TwoAssoc)
   quickCheck (semigroupAssoc :: BoolConjAssoc)
   quickCheck (semigroupAssoc :: BoolDisjAssoc)
@@ -121,6 +144,8 @@ main = do
   print $ unCombine (f <> g ) $ 1
   print $ unCombine (f <> f ) $ 1
   print $ unCombine (g <> f ) $ 1
+  print $ unCombine (mappend mempty f) 0 == unCombine f 0
+  print $ unCombine (mappend f mempty) $ 1
   let failure :: String -> Validation String Int
       failure = Failure
       success :: Int -> Validation String Int
