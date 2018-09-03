@@ -23,3 +23,18 @@ instance Monad (Moi s) where
     (Moi f) >>= g = Moi $ \s ->
         let (a, s') = f s
         in runMoi (g a) s'
+
+get :: Moi s s
+get = Moi $ \s -> (s, s)
+
+put :: s -> Moi s ()
+put = \s -> Moi $ \s' -> ((), s)
+
+exec :: Moi s a -> s -> s
+exec (Moi sa) s = snd $ sa s
+
+eval :: Moi s a -> s -> a
+eval (Moi sa) = fst.sa
+
+modify :: (s -> s) -> Moi s ()
+modify f = Moi $ \s -> ((),f s)
